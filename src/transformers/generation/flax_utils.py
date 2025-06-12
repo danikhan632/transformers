@@ -634,7 +634,8 @@ class FlaxGenerationMixin:
             next_token = jnp.argmax(logits, axis=-1)
 
             next_token = next_token * ~state.is_sent_finished + pad_token_id * state.is_sent_finished
-            next_is_sent_finished = state.is_sent_finished | (next_token == eos_token_id)
+            eos_hit = jnp.any(next_token[..., None] == eos_token_id, axis=-1)
+            next_is_sent_finished = state.is_sent_finished | eos_hit
             next_token = next_token[:, None]
 
             next_sequences = lax.dynamic_update_slice(state.sequences, next_token, (0, state.cur_len))
@@ -729,7 +730,9 @@ class FlaxGenerationMixin:
             next_token = jax.random.categorical(prng_key, logits, axis=-1)
 
             next_token = next_token * ~state.is_sent_finished + pad_token_id * state.is_sent_finished
-            next_is_sent_finished = state.is_sent_finished | (next_token == eos_token_id)
+            eos_hit = jnp.any(next_token[..., None] == eos_token_id, axis=-1)
+            next_is_sent_finished = state.is_sent_finished | eos_hit
+
             next_token = next_token[:, None]
 
             next_sequences = lax.dynamic_update_slice(state.sequences, next_token, (0, state.cur_len))
@@ -957,7 +960,11 @@ class FlaxGenerationMixin:
             # To prevent these just finished sequences from being added to the current sequences
             # set of active beam search sequences, set their log probs to a very large
             # negative value.
-            did_topk_just_finished = topk_sequences[:, :, state.cur_len] == eos_token_id
+            eos_hit = jnp.any(
+                topk_sequences[:, :, state.cur_len, None] == eos_token_id,
+                axis=-1,
+            )
+            did_topk_just_finished = eos_hit
             running_topk_log_probs = topk_log_probs + did_topk_just_finished * np.array(-1.0e7)
             # 5. Get running sequences scores for next
             # Determine the top k beam indices (from top 2*k beams) from log probs

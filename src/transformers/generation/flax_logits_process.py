@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import inspect
+from typing import Sequence, Union
 
 import jax
 import jax.lax as lax
@@ -246,25 +247,34 @@ class FlaxMinLengthLogitsProcessor(FlaxLogitsProcessor):
     Args:
         min_length (`int`):
             The minimum length below which the score of `eos_token_id` is set to `-float("Inf")`.
-        eos_token_id (`int`):
-            The id of the *end-of-sequence* token.
+        eos_token_id (`Union[int, Sequence[int]]`):
+            The id(s) of the *end-of-sequence* token(s).
     """
 
-    def __init__(self, min_length: int, eos_token_id: int):
+    def __init__(self, min_length: int, eos_token_id: Union[int, Sequence[int]]):
         if not isinstance(min_length, int) or min_length < 0:
             raise ValueError(f"`min_length` has to be a positive integer, but is {min_length}")
 
-        if not isinstance(eos_token_id, int) or eos_token_id < 0:
+        if isinstance(eos_token_id, int):
+            eos_token_ids = [eos_token_id]
+        elif isinstance(eos_token_id, Sequence) and eos_token_id and all(isinstance(tid, int) for tid in eos_token_id):
+            eos_token_ids = list(eos_token_id)
+        else:
+            raise ValueError(
+                f"`eos_token_id` has to be a positive integer or a sequence of such integers, but is {eos_token_id}"
+            )
+
+        if any(tid < 0 for tid in eos_token_ids):
             raise ValueError(f"`eos_token_id` has to be a positive integer, but is {eos_token_id}")
 
         self.min_length = min_length
-        self.eos_token_id = eos_token_id
+        self.eos_token_ids = jnp.array(eos_token_ids)
 
     def __call__(self, input_ids: jnp.ndarray, scores: jnp.ndarray, cur_len: int) -> jnp.ndarray:
         # create boolean flag to decide if min length penalty should be applied
         apply_penalty = 1 - jnp.clip(cur_len - self.min_length, 0, 1)
 
-        scores = jnp.where(apply_penalty, scores.at[:, self.eos_token_id].set(-float("inf")), scores)
+        scores = jnp.where(apply_penalty, scores.at[:, self.eos_token_ids].set(-float("inf")), scores)
 
         return scores
 
