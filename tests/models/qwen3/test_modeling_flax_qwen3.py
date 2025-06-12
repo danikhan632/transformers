@@ -1,5 +1,7 @@
-from transformers import AutoTokenizer, FlaxAutoModelForCausalLM
 import jax.numpy as jnp
+
+from transformers import AutoTokenizer, FlaxAutoModelForCausalLM
+
 
 model_name = "Qwen/Qwen3-0.6B"
 
@@ -10,12 +12,7 @@ model = FlaxAutoModelForCausalLM.from_pretrained(model_name, dtype=jnp.float32)
 # prepare the prompt in Qwen’s chat format
 prompt = "Give me a short introduction to large language model."
 messages = [{"role": "user", "content": prompt}]
-text = tokenizer.apply_chat_template(
-    messages,
-    tokenize=False,
-    add_generation_prompt=True,
-    enable_thinking=True
-)
+text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=True)
 
 # tokenize into JAX arrays
 inputs = tokenizer([text], return_tensors="jax", padding=True)
@@ -33,7 +30,7 @@ outputs = model.generate(
 # outputs.sequences is a JAX array of shape (batch, seq_len)
 generated = outputs.sequences[0]
 # strip off the prompt tokens
-generated_ids = generated[len(input_ids[0]):]
+generated_ids = generated[len(input_ids[0]) :]
 
 # find Qwen’s </think> special-token ID
 think_id = 151668
@@ -45,7 +42,7 @@ except ValueError:
 
 # decode
 thinking = tokenizer.decode(ids_list[:idx], skip_special_tokens=True).strip()
-content  = tokenizer.decode(ids_list[idx:], skip_special_tokens=True).strip()
+content = tokenizer.decode(ids_list[idx:], skip_special_tokens=True).strip()
 
 print("thinking content:", thinking)
 print("content:", content)
