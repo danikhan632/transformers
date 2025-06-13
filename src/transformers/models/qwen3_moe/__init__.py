@@ -19,6 +19,7 @@ from ...utils.import_utils import define_import_structure
 
 if TYPE_CHECKING:
     from .configuration_qwen3_moe import *
+    from .modeling_flax_qwen3_moe import *
     from .modeling_qwen3_moe import *
 else:
     import sys

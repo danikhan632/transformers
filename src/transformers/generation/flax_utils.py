@@ -592,6 +592,8 @@ class FlaxGenerationMixin:
 
         eos_token_id = jnp.array(eos_token_id, dtype=jnp.int32 if eos_token_id is not None else None)
         pad_token_id = jnp.array(pad_token_id, dtype=jnp.int32)
+        if pad_token_id.ndim > 0:
+            pad_token_id = pad_token_id[0]
         cur_len = jnp.array(cur_len)
 
         # per batch-item holding current token in loop.
@@ -635,6 +637,7 @@ class FlaxGenerationMixin:
 
             next_token = next_token * ~state.is_sent_finished + pad_token_id * state.is_sent_finished
             eos_hit = jnp.any(next_token[..., None] == eos_token_id, axis=-1)
+            eos_hit = jnp.squeeze(eos_hit) if eos_hit.ndim > 1 else eos_hit
             next_is_sent_finished = state.is_sent_finished | eos_hit
             next_token = next_token[:, None]
 
@@ -682,6 +685,8 @@ class FlaxGenerationMixin:
 
         eos_token_id = jnp.array(eos_token_id, dtype=jnp.int32 if eos_token_id is not None else None)
         pad_token_id = jnp.array(pad_token_id, dtype=jnp.int32)
+        if pad_token_id.ndim > 0:
+            pad_token_id = pad_token_id[0]
         cur_len = jnp.array(cur_len)
 
         # per batch-item holding current token in loop.
@@ -731,6 +736,7 @@ class FlaxGenerationMixin:
 
             next_token = next_token * ~state.is_sent_finished + pad_token_id * state.is_sent_finished
             eos_hit = jnp.any(next_token[..., None] == eos_token_id, axis=-1)
+            eos_hit = jnp.squeeze(eos_hit) if eos_hit.ndim > 1 else eos_hit
             next_is_sent_finished = state.is_sent_finished | eos_hit
 
             next_token = next_token[:, None]
@@ -822,6 +828,8 @@ class FlaxGenerationMixin:
 
         eos_token_id = jnp.array(eos_token_id, dtype=jnp.int32 if eos_token_id is not None else None)
         pad_token_id = jnp.array(pad_token_id, dtype=jnp.int32)
+        if pad_token_id.ndim > 0:
+            pad_token_id = pad_token_id[0]
         cur_len = jnp.array(cur_len)
 
         # record the prompt length of decoder
@@ -964,6 +972,7 @@ class FlaxGenerationMixin:
                 topk_sequences[:, :, state.cur_len, None] == eos_token_id,
                 axis=-1,
             )
+            eos_hit = jnp.squeeze(eos_hit) if eos_hit.ndim > 2 else eos_hit
             did_topk_just_finished = eos_hit
             running_topk_log_probs = topk_log_probs + did_topk_just_finished * np.array(-1.0e7)
             # 5. Get running sequences scores for next
